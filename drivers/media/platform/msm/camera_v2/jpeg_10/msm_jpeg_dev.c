@@ -174,7 +174,7 @@ static const struct msm_jpeg_priv_data msm_jpeg_priv_data_dma = {
 
 static const struct of_device_id msm_jpeg_dt_match[] = {
 	{.compatible = "qcom,jpeg", .data = &msm_jpeg_priv_data_jpg},
-	{.compatible = "qcom,jpeg_dma", .data = &msm_jpeg_priv_data_dma},
+	{.compatible = "qcom,jpegdma", .data = &msm_jpeg_priv_data_dma},
 	{}
 };
 
