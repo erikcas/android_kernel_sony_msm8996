@@ -10,6 +10,11 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
  */
+/*
+ * NOTE: This file has been modified by Sony Mobile Communications Inc.
+ * Modifications are Copyright (c) 2016 Sony Mobile Communications Inc,
+ * and licensed under the license of the file.
+ */
 
 #include <linux/delay.h>
 #include <linux/clk.h>
@@ -24,6 +29,9 @@
 #define BUFF_SIZE_128 128
 
 #undef CDBG
+#if defined(CONFIG_SONY_CAM_V4L2)
+#define CDBG(fmt, args...)
+#else
 #define CDBG(fmt, args...) pr_debug(fmt, ##args)
 
 void msm_camera_io_w(u32 data, void __iomem *addr)
@@ -31,6 +39,7 @@ void msm_camera_io_w(u32 data, void __iomem *addr)
 	CDBG("%s: 0x%pK %08x\n", __func__,  (addr), (data));
 	writel_relaxed((data), (addr));
 }
+#endif
 
 /* This API is to write a block of data
 * to same address
@@ -46,7 +55,11 @@ int32_t msm_camera_io_w_block(const u32 *addr, void __iomem *base,
 	for (i = 0; i < len; i++) {
 		CDBG("%s: len =%d val=%x base =%pK\n", __func__,
 			len, addr[i], base);
+#if defined(CONFIG_SONY_CAM_V4L2)
+		writel_relaxed_no_log(addr[i], base);
+#else
 		writel_relaxed(addr[i], base);
+#endif
 	}
 	return 0;
 }
@@ -65,7 +78,11 @@ int32_t msm_camera_io_w_reg_block(const u32 *addr, void __iomem *base,
 	for (i = 0; i < len; i = i + 2) {
 		CDBG("%s: len =%d val=%x base =%pK reg=%x\n", __func__,
 			len, addr[i + 1], base,  addr[i]);
+#if defined(CONFIG_SONY_CAM_V4L2)
+		writel_relaxed_no_log(addr[i + 1], base + addr[i]);
+#else
 		writel_relaxed(addr[i + 1], base + addr[i]);
+#endif
 	}
 	return 0;
 }
@@ -75,7 +92,11 @@ void msm_camera_io_w_mb(u32 data, void __iomem *addr)
 	CDBG("%s: 0x%pK %08x\n", __func__,  (addr), (data));
 	/* ensure write is done */
 	wmb();
+#if defined(CONFIG_SONY_CAM_V4L2)
+	writel_relaxed_no_log((data), (addr));
+#else
 	writel_relaxed((data), (addr));
+#endif
 	/* ensure write is done */
 	wmb();
 }
@@ -92,13 +113,18 @@ int32_t msm_camera_io_w_mb_block(const u32 *addr, void __iomem *base, u32 len)
 		wmb();
 		CDBG("%s: len =%d val=%x base =%pK\n", __func__,
 			len, addr[i], base);
+#if defined(CONFIG_SONY_CAM_V4L2)
+		writel_relaxed_no_log(addr[i], base);
+#else
 		writel_relaxed(addr[i], base);
+#endif
 	}
 	/* ensure last write is done */
 	wmb();
 	return 0;
 }
 
+#if !defined(CONFIG_SONY_CAM_V4L2)
 u32 msm_camera_io_r(void __iomem *addr)
 {
 	uint32_t data = readl_relaxed(addr);
@@ -106,6 +132,7 @@ u32 msm_camera_io_r(void __iomem *addr)
 	CDBG("%s: 0x%pK %08x\n", __func__,  (addr), (data));
 	return data;
 }
+#endif
 
 u32 msm_camera_io_r_mb(void __iomem *addr)
 {
@@ -127,7 +154,11 @@ void msm_camera_io_memcpy_toio(void __iomem *dest_addr,
 	u32 *s = (u32 *) src_addr;
 
 	for (i = 0; i < len; i++)
+#if defined(CONFIG_SONY_CAM_V4L2)
+		writel_relaxed_no_log(*s++, d++);
+#else
 		writel_relaxed(*s++, d++);
+#endif
 }
 
 int32_t msm_camera_io_poll_value(void __iomem *addr, u32 wait_data, u32 retry,
@@ -176,45 +207,35 @@ int32_t msm_camera_io_poll_value_wmask(void __iomem *addr, u32 wait_data,
 
 void msm_camera_io_dump(void __iomem *addr, int size, int enable)
 {
-	char line_str[128];
+	char line_str[128], *p_str;
 	int i;
-	ptrdiff_t p = 0;
-	size_t offset = 0, used = 0;
+	u32 *p = (u32 *) addr;
 	u32 data;
 
 	CDBG("%s: addr=%pK size=%d\n", __func__, addr, size);
 
-	if (!addr || (size <= 0) || !enable)
+	if (!p || (size <= 0) || !enable)
 		return;
 
 	line_str[0] = '\0';
+	p_str = line_str;
 	for (i = 0; i < size/4; i++) {
 		if (i % 4 == 0) {
-			used = snprintf(line_str + offset,
-				sizeof(line_str) - offset, "0x%04tX: ", p);
-			if (offset + used >= sizeof(line_str)) {
-				pr_err("%s\n", line_str);
-				offset = 0;
-				line_str[0] = '\0';
-			} else {
-				offset += used;
-			}
+#ifdef CONFIG_COMPAT
+			snprintf(p_str, 20, "%016lx: ", (unsigned long) p);
+			p_str += 18;
+#else
+			snprintf(p_str, 12, "%08lx: ", (unsigned long) p);
+			p_str += 10;
+#endif
 		}
-		data = readl_relaxed(addr + p);
-		p = p + 4;
-		used = snprintf(line_str + offset,
-			sizeof(line_str) - offset, "%08x ", data);
-		if (offset + used >= sizeof(line_str)) {
-			pr_err("%s\n", line_str);
-			offset = 0;
-			line_str[0] = '\0';
-		} else {
-			offset += used;
-		}
+		data = readl_relaxed(p++);
+		snprintf(p_str, 12, "%08x ", data);
+		p_str += 9;
 		if ((i + 1) % 4 == 0) {
 			pr_err("%s\n", line_str);
 			line_str[0] = '\0';
-			offset = 0;
+			p_str = line_str;
 		}
 	}
 	if (line_str[0] != '\0')
@@ -559,16 +580,12 @@ int msm_camera_enable_vreg(struct device *dev, struct camera_vreg_t *cam_vreg,
 					continue;
 			} else
 				j = i;
-			if (reg_ptr[j]) {
-				regulator_disable(reg_ptr[j]);
-				if (cam_vreg[j].delay > 20)
-					msleep(cam_vreg[j].delay);
-				else if (cam_vreg[j].delay)
-					usleep_range(
-						cam_vreg[j].delay * 1000,
-						(cam_vreg[j].delay * 1000)
-						+ 1000);
-			}
+			regulator_disable(reg_ptr[j]);
+			if (cam_vreg[j].delay > 20)
+				msleep(cam_vreg[j].delay);
+			else if (cam_vreg[j].delay)
+				usleep_range(cam_vreg[j].delay * 1000,
+					(cam_vreg[j].delay * 1000) + 1000);
 		}
 	}
 	return rc;
