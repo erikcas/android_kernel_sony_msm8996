@@ -29,9 +29,11 @@ enum sony_camera_cmd {
 	SONY_GPIO_AF,
 	SONY_GPIO_RESET,
 	SONY_CAM_VDIG_GPIO,
+#ifndef CONFIG_ARCH_SONY_TONE
 	SONY_CAM_VIO_GPIO,
 	SONY_CAM_VANA_GPIO,
 	SONY_CAM_VAF_GPIO,
+#endif
 	SONY_CAM_CLK,
 	SONY_I2C_WRITE,
 	EXIT,
@@ -77,7 +79,9 @@ struct sony_camera_module {
 	uint32_t		focus_lens_stroke_1m_to_macro;
 	uint32_t		focus_lens_stroke_inf_to_macro;
 	uint32_t		focus_calc_type;
+#ifndef CONFIG_ARCH_SONY_TONE
 	uint32_t		focus_wob_time;
+#endif
 	uint32_t		has_3a;
 	uint32_t		has_focus_actuator;
 	uint32_t		need_standby_af;
@@ -91,7 +95,9 @@ struct sony_camera_module {
 	uint32_t		has_flicker_detector;
 	uint32_t		has_hdr;
 	uint32_t		has_seamless_mode_change;
+#ifndef CONFIG_ARCH_SONY_TONE
 	uint32_t		has_gph;
+#endif
 	uint32_t		pdaf_free_area_num;
 	uint32_t		pdaf_fixed_area_size_w;
 	uint32_t		pdaf_fixed_area_size_h;

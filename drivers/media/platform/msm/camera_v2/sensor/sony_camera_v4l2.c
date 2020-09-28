@@ -85,10 +85,12 @@ struct sony_camera_data {
 	struct regulator		*cam_vana;
 	struct regulator		*cam_vdig;
 	struct regulator		*cam_vaf;
+#ifndef CONFIG_ARCH_SONY_TONE
 	struct regulator		*cam_vio_gpio;
 	struct regulator		*cam_vana_gpio;
 	struct regulator		*cam_vdig_gpio;
 	struct regulator		*cam_vaf_gpio;
+#endif
 	struct clk			*clk_handle[2];
 	struct device			info_dev;
 	bool				power_up_done;
@@ -129,7 +131,9 @@ struct camera_read_info {
 	uint32_t			focus_lens_stroke_1m_to_macro;
 	uint32_t			focus_lens_stroke_inf_to_macro;
 	uint32_t			focus_calc_type;
+#ifndef CONFIG_ARCH_SONY_TONE
 	uint32_t			focus_wob_time;
+#endif
 	uint32_t			has_3a;
 	uint32_t			has_focus_actuator;
 	uint32_t			has_pdaf;
@@ -142,7 +146,9 @@ struct camera_read_info {
 	uint32_t			has_hw_sof;
 	uint32_t			has_hdr;
 	uint32_t			has_seamless_mode_change;
+#ifndef CONFIG_ARCH_SONY_TONE
 	uint32_t			has_gph;
+#endif
 	uint32_t			pdaf_free_area_num;
 	uint32_t			pdaf_fixed_area_size_w;
 	uint32_t			pdaf_fixed_area_size_h;
@@ -582,6 +588,7 @@ static int sony_util_camera_info_init(struct platform_device *pdev, uint16_t id)
 			goto fail;
 		}
 
+#ifndef CONFIG_ARCH_SONY_TONE
 		rc = of_property_read_u32(of_node_modules,
 			"focus_wob_time",
 			&camera_info[id].modules[i].focus_wob_time);
@@ -590,7 +597,7 @@ static int sony_util_camera_info_init(struct platform_device *pdev, uint16_t id)
 			LOGE("%s failed %d\n", __func__, __LINE__);
 			goto fail;
 		}
-
+#endif
 		rc = of_property_read_u32(of_node_modules,
 			"has_3a",
 			&camera_info[id].modules[i].has_3a);
@@ -708,6 +715,7 @@ static int sony_util_camera_info_init(struct platform_device *pdev, uint16_t id)
 			goto fail;
 		}
 
+#ifndef CONFIG_ARCH_SONY_TONE
 		rc = of_property_read_u32(of_node_modules,
 			"has_gph",
 			&camera_info[id].modules[i].has_gph);
@@ -716,6 +724,7 @@ static int sony_util_camera_info_init(struct platform_device *pdev, uint16_t id)
 			LOGE("%s failed %d\n", __func__, __LINE__);
 			goto fail;
 		}
+#endif
 
 		rc = of_property_read_u32(of_node_modules,
 			"pdaf_free_area_num",
@@ -1013,6 +1022,7 @@ static int sony_util_vreg_set(struct msm_sensor_ctrl_t *s_ctrl,
 			}
 			data->cam_vaf = vreg;
 		}
+#ifndef CONFIG_ARCH_SONY_TONE
 	} else if (cmd == SONY_CAM_VDIG_GPIO) {
 		if (data->cam_vdig_gpio) {
 			vreg = data->cam_vdig_gpio;
@@ -1065,6 +1075,7 @@ static int sony_util_vreg_set(struct msm_sensor_ctrl_t *s_ctrl,
 			}
 			data->cam_vaf_gpio = vreg;
 		}
+#endif
 	} else {
 		rc = -EINVAL;
 		LOGE("invalid resource\n");
@@ -1110,6 +1121,7 @@ exit:
 			data->cam_vana = NULL;
 		else if (vreg == data->cam_vaf)
 			data->cam_vaf = NULL;
+#ifndef CONFIG_ARCH_SONY_TONE
 		else if (vreg == data->cam_vdig_gpio)
 			data->cam_vdig_gpio = NULL;
 		else if (vreg == data->cam_vio_gpio)
@@ -1118,6 +1130,7 @@ exit:
 			data->cam_vana_gpio = NULL;
 		else if (vreg == data->cam_vaf_gpio)
 			data->cam_vaf_gpio = NULL;
+#endif
 	}
 
 	if (rc < 0)
@@ -1304,10 +1317,12 @@ static int sony_util_power_ctrl(struct msm_sensor_ctrl_t *s_ctrl,
 		case SONY_CAM_VIO:
 		case SONY_CAM_VANA:
 		case SONY_CAM_VAF:
+#ifndef CONFIG_ARCH_SONY_TONE
 		case SONY_CAM_VIO_GPIO:
 		case SONY_CAM_VANA_GPIO:
 		case SONY_CAM_VDIG_GPIO:
 		case SONY_CAM_VAF_GPIO:
+#endif
 			rc = sony_util_vreg_set(s_ctrl,
 				data, seq->cmd, seq->val1, seq->val2);
 			break;
@@ -1574,8 +1589,10 @@ static ssize_t sony_camera_info_read(struct device *ldev,
 				camera_data[id].module->focus_lens_stroke_inf_to_macro;
 			info->focus_calc_type =
 				camera_data[id].module->focus_calc_type;
+#ifndef CONFIG_ARCH_SONY_TONE
 			info->focus_wob_time =
 				camera_data[id].module->focus_wob_time;
+#endif
 			info->has_3a =
 				camera_data[id].module->has_3a;
 			info->has_focus_actuator =
@@ -1600,8 +1617,10 @@ static ssize_t sony_camera_info_read(struct device *ldev,
 				camera_data[id].module->has_hdr;
 			info->has_seamless_mode_change =
 				camera_data[id].module->has_seamless_mode_change;
+#ifndef CONFIG_ARCH_SONY_TONE
 			info->has_gph =
 				camera_data[id].module->has_gph;
+#endif
 			info->pdaf_free_area_num =
 				camera_data[id].module->pdaf_free_area_num;
 			info->pdaf_fixed_area_size_w =
